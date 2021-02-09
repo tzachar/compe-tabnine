@@ -156,7 +156,7 @@ Source._on_stdout = function(_, data, _)
 		return
 	end
 
-	-- dump(result)
+	-- dump(results)
 	for _, result in ipairs(results) do
 		table.insert(items, result.new_prefix)
 	end
@@ -165,7 +165,8 @@ Source._on_stdout = function(_, data, _)
 	if Source.last_initiated == Source.last_finished and Source.callback then
 		Source.callback({
 			items = items;
-			incomplete = false;
+			-- we are always incomplete.
+			incomplete = true;
 		})
 	end
 	Source.callback = nil;
