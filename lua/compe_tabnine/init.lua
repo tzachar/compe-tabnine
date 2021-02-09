@@ -49,12 +49,13 @@ end
 
 --- determine
 function Source.determine(_, context)
-	dump(context)
+	-- dump(context)
 	return compe.helper.determine(context)
 end
 
 
 Source._do_complete = function()
+	-- print('do complete')
 	if Source.job == 0 then
 		return
 	end
