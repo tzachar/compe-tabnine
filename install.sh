@@ -6,8 +6,6 @@ set -o errexit
 set -o pipefail
 set -x
 
-rm TabNine || true # remove old link
-
 version=${version:-$(curl -sS https://update.tabnine.com/version)}
 
 case $(uname -s) in
@@ -31,4 +29,6 @@ echo Downloading version $version
 curl https://update.tabnine.com/$path --create-dirs -o binaries/$path
 chmod +x binaries/$path
 
-ln -sf $path "binaries/TabNine_$(uname -s)"
+target="binaries/TabNine_$(uname -s)"
+rm $target || true # remove old link
+ln -sf $path $target
