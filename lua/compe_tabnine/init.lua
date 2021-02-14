@@ -98,7 +98,7 @@ end
 function Source.complete(self, args)
 	if Source.last_initiated >= Source.last_finished + 10 then
 		-- restart
-		Source._on_exit(0, 0)
+		fn.jobstop(Source.job)
 	end
 
 	Source.last_initiated = Source.last_initiated + 1
