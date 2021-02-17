@@ -9,12 +9,12 @@ local function dump(...)
 end
 
 local function json_decode(data)
-  local status, result = pcall(vim.fn.json_decode, data)
-  if status then
-    return result
-  else
-    return nil, result
-  end
+	local status, result = pcall(vim.fn.json_decode, data)
+	if status then
+		return result
+	else
+		return nil, result
+	end
 end
 
 -- locate the binary here, as expand is relative to the calling script name
@@ -31,8 +31,6 @@ end
 local Source = {
 	max_lines = 1000;
 	max_num_results = 20;
-	last_initiated = 0;
-	last_finished = 0;
 	callback = nil;
 }
 
@@ -96,12 +94,6 @@ end
 
 --- complete
 function Source.complete(self, args)
-	if Source.last_initiated >= Source.last_finished + 10 then
-		-- restart
-		fn.jobstop(Source.job)
-	end
-
-	Source.last_initiated = Source.last_initiated + 1
 	Source.callback = args.callback
 	Source._do_complete()
 	args.callback({
@@ -119,8 +111,6 @@ Source._on_exit = function(_, code)
 		-- nvim is exiting. do not restart
 		return
 	end
-	Source.last_initiated = 0
-	Source.last_finished = 0
 
 	Source.job = fn.jobstart({binary}, {
 		on_stderr = Source._on_stderr;
@@ -143,27 +133,32 @@ Source._on_stdout = function(_, data, _)
       --   "user_message": [],
       --   "docs": []
       -- }
+	-- dump(data)
 	local items = {}
-	local response = json_decode(data)
-	-- dump(response)
-	if response == nil then
-		-- the _on_exit callback should restart the server
-		fn.jobstop(Source.job)
-		-- print('TabNine: json decode error')
-		return
+	for _, jd in ipairs(data) do
+		if jd ~= nil and jd ~= '' then
+			local response = json_decode(jd)
+			-- dump(response)
+			if response == nil then
+				-- the _on_exit callback should restart the server
+				-- fn.jobstop(Source.job)
+				dump('TabNine: json decode error: ', jd)
+			else
+				local results = response.results
+				if results ~= nil then
+					-- dump(results)
+					for _, result in ipairs(results) do
+						table.insert(items, result.new_prefix)
+					end
+				else
+					dump('no results:', jd)
+				end
+			end
+		end
 	end
-	local results = response.results
-	if results == nil then
-		return
-	end
-
-	-- dump(results)
-	for _, result in ipairs(results) do
-		table.insert(items, result.new_prefix)
-	end
-	Source.last_finished = Source.last_finished + 1
-	-- now, if we are synced, send results
-	if Source.last_initiated == Source.last_finished and Source.callback then
+	--
+	-- now, if we have a callback, send results
+	if Source.callback then
 		Source.callback({
 			items = items;
 			-- we are always incomplete.
