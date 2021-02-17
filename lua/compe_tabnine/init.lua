@@ -147,7 +147,8 @@ Source._on_stdout = function(_, data, _)
 	local response = json_decode(data)
 	-- dump(response)
 	if response == nil then
-		Source._on_exit(0,0)
+		-- the _on_exit callback should restart the server
+		fn.jobstop(Source.job)
 		-- print('TabNine: json decode error')
 		return
 	end
