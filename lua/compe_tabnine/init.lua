@@ -29,8 +29,6 @@ end
 
 
 local Source = {
-	max_lines = 1000;
-	max_num_results = 20;
 	callback = nil;
 }
 
@@ -42,6 +40,8 @@ function Source.get_metadata(_)
 		menu = '[TN]';
 		-- by default, do not sort
 		sort = false;
+		max_lines = vim.g.compe.source.tabnine.max_line or 1000;
+		max_num_results = vim.g.compe.source.tabnine.max_num_results or 20;
 	}
 end
 
@@ -57,6 +57,7 @@ Source._do_complete = function()
 	if Source.job == 0 then
 		return
 	end
+	config = Source.get_metadata()
 
 	local cursor=api.nvim_win_get_cursor(0)
 	local cur_line = api.nvim_get_current_line()
@@ -65,14 +66,14 @@ Source._do_complete = function()
 
 	local region_includes_beginning = false
 	local region_includes_end = false
-	if cursor[1] - Source.max_lines <= 1 then region_includes_beginning = true end
-	if cursor[1] + Source.max_lines >= fn['line']('$') then region_includes_end = true end
+	if cursor[1] - config.max_lines <= 1 then region_includes_beginning = true end
+	if cursor[1] + config.max_lines >= fn['line']('$') then region_includes_end = true end
 
-	local lines_before = api.nvim_buf_get_lines(0, cursor[1] - Source.max_lines , cursor[1]-1, false)
+	local lines_before = api.nvim_buf_get_lines(0, cursor[1] - config.max_lines , cursor[1]-1, false)
 	table.insert(lines_before, cur_line_before)
 	local before = table.concat(lines_before, "\n")
 
-	local lines_after = api.nvim_buf_get_lines(0, cursor[1], cursor[1] + Source.max_lines, false)
+	local lines_after = api.nvim_buf_get_lines(0, cursor[1], cursor[1] + config.max_lines, false)
 	table.insert(lines_after, 1, cur_line_after)
 	local after = table.concat(lines_after, "\n")
 
@@ -85,7 +86,7 @@ Source._do_complete = function()
 			region_includes_beginning = region_includes_beginning,
 			region_includes_end = region_includes_end,
 			filename = fn["expand"]("%:p"),
-			max_num_results = Source.max_num_results
+			max_num_results = config.max_num_results
 		}
 	}
 
@@ -134,6 +135,7 @@ Source._on_stdout = function(_, data, _)
       --   "docs": []
       -- }
 	-- dump(data)
+	-- we the first max_num_results. TODO: add sorting and take best max_num_results
 	local items = {}
 	for _, jd in ipairs(data) do
 		if jd ~= nil and jd ~= '' then
@@ -143,12 +145,14 @@ Source._on_stdout = function(_, data, _)
 				-- the _on_exit callback should restart the server
 				-- fn.jobstop(Source.job)
 				dump('TabNine: json decode error: ', jd)
-			else
+			elseif #items < Source.get_metadata().max_num_results then
 				local results = response.results
 				if results ~= nil then
 					-- dump(results)
 					for _, result in ipairs(results) do
-						table.insert(items, result.new_prefix)
+						if #items < Source.get_metadata().max_num_results then
+							table.insert(items, result.new_prefix)
+						end
 					end
 				else
 					dump('no results:', jd)
