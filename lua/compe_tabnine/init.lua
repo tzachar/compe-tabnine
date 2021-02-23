@@ -40,8 +40,8 @@ function Source.get_metadata(_)
 		menu = '[TN]';
 		-- by default, do not sort
 		sort = false;
-		max_lines = vim.g.compe.source.tabnine.max_line or 1000;
-		max_num_results = vim.g.compe.source.tabnine.max_num_results or 20;
+		max_lines = (vim.g.compe and vim.g.compe.source.tabnine.max_line) or 1000;
+		max_num_results = (vim.g.compe and vim.g.compe.source.tabnine.max_num_results) or 20;
 	}
 end
 
