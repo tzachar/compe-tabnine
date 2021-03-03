@@ -32,6 +32,19 @@ local Source = {
 	callback = nil;
 }
 
+local function istable(t)
+	return type(t) == 'table'
+end
+
+local function has_conf(key, default)
+	if vim.g.compe and vim.g.compe.source and vim.g.compe.source.tabnine then
+		if istable(vim.g.compe.source.tabnine) then
+			return vim.g.compe.source.tabnine[key]
+		end
+	end
+	return default
+end
+
 --- get_metadata
 function Source.get_metadata(_)
 	return {
@@ -40,8 +53,8 @@ function Source.get_metadata(_)
 		menu = '[TN]';
 		-- by default, do not sort
 		sort = false;
-		max_lines = (vim.g.compe and vim.g.compe.source.tabnine.max_line) or 1000;
-		max_num_results = (vim.g.compe and vim.g.compe.source.tabnine.max_num_results) or 20;
+		max_lines = has_conf('max_line', 1000);
+		max_num_results = has_conf('max_num_results', 20);
 	}
 end
 
@@ -98,7 +111,7 @@ function Source.complete(self, args)
 	Source.callback = args.callback
 	Source._do_complete()
 	args.callback({
-		items = nil;
+		items = {};
 		incomplete = true;
 	})
 end
