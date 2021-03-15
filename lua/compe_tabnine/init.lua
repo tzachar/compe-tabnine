@@ -116,6 +116,14 @@ function Source.complete(self, args)
 	})
 end
 
+--- complete
+function Source.confirm(_, context)
+  local item = context.completed_item
+
+  api.nvim_put({item.user_data.new_suffix}, "c", true, false)
+end
+
+
 Source._on_err = function(_, data, _)
 end
 
@@ -164,7 +172,12 @@ Source._on_stdout = function(_, data, _)
 					-- dump(results)
 					for _, result in ipairs(results) do
 						if #items < Source.get_metadata().max_num_results then
-							table.insert(items, result.new_prefix)
+							-- table.insert(items, result.new_prefix)
+							local item = {
+								word = result.new_prefix,
+								user_data = result
+							}
+							table.insert(items, item)
 						end
 					end
 				else
