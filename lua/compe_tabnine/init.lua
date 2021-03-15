@@ -116,11 +116,16 @@ function Source.complete(self, args)
 	})
 end
 
---- complete
-function Source.confirm(_, context)
-  local item = context.completed_item
+--- confirm replace suffix
+function Source.confirm(self, option)
+  local item = option.completed_item
 
-  api.nvim_put({item.user_data.new_suffix}, "c", true, false)
+  local pos = api.nvim_win_get_cursor(0)
+  local row = pos[1] - 1
+  local col = pos[2]
+  local len = string.len(item.user_data.old_suffix)
+  api.nvim_buf_set_text(0, row, col, row, col+len, {item.user_data.new_suffix})
+  -- api.nvim_put({item.user_data.new_suffix}, "c", true, false)
 end
 
 
