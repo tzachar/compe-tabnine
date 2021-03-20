@@ -116,6 +116,19 @@ function Source.complete(self, args)
 	Source._do_complete()
 end
 
+--- confirm replace suffix
+function Source.confirm(self, option)
+  local item = option.completed_item
+
+  local pos = api.nvim_win_get_cursor(0)
+  local row = pos[1] - 1
+  local col = pos[2]
+  local len = string.len(item.user_data.old_suffix)
+  api.nvim_buf_set_text(0, row, col, row, col+len, {item.user_data.new_suffix})
+  -- api.nvim_put({item.user_data.new_suffix}, "c", true, false)
+end
+
+
 Source._on_err = function(_, data, _)
 end
 
@@ -164,7 +177,12 @@ Source._on_stdout = function(_, data, _)
 					-- dump(results)
 					for _, result in ipairs(results) do
 						if #items < Source.get_metadata().max_num_results then
-							table.insert(items, result.new_prefix)
+							-- table.insert(items, result.new_prefix)
+							local item = {
+								word = result.new_prefix,
+								user_data = result
+							}
+							table.insert(items, item)
 						end
 					end
 				else
