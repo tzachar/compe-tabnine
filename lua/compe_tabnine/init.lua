@@ -61,9 +61,13 @@ end
 --- determine
 function Source.determine(_, context)
 	-- dump(context)
-	return compe.helper.determine(context)
+	return compe.helper.determine(context, {
+			trigger_characters = vim.split(
+				"!\"#$%&'()*+,-./0123456789:;<=>?@"
+				.. "ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~",
+				"", true)
+		})
 end
-
 
 Source._do_complete = function()
 	-- print('do complete')
@@ -110,10 +114,6 @@ end
 function Source.complete(self, args)
 	Source.callback = args.callback
 	Source._do_complete()
-	args.callback({
-		items = {};
-		incomplete = true;
-	})
 end
 
 Source._on_err = function(_, data, _)
