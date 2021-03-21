@@ -181,6 +181,7 @@ Source._on_stdout = function(_, data, _)
 							local item = {
 								word = result.new_prefix;
 								user_data = result;
+								filter_text = old_prefix;
 							}
 							table.insert(items, item)
 						end
