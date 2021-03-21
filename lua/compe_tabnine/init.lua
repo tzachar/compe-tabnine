@@ -61,12 +61,10 @@ end
 --- determine
 function Source.determine(_, context)
 	-- dump(context)
-	return compe.helper.determine(context, {
-			trigger_characters = vim.split(
-				"!\"#$%&'()*+,-./0123456789:;<=>?@"
-				.. "ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~",
-				"", true)
-		})
+	return {
+		keyword_pattern_offset = 1;
+		trigger_character_offset = context.col;
+	}
 end
 
 Source._do_complete = function()
@@ -163,6 +161,7 @@ Source._on_stdout = function(_, data, _)
 	-- dump(data)
 	-- we the first max_num_results. TODO: add sorting and take best max_num_results
 	local items = {}
+	local old_prefix = ""
 	for _, jd in ipairs(data) do
 		if jd ~= nil and jd ~= '' then
 			local response = json_decode(jd)
@@ -173,14 +172,15 @@ Source._on_stdout = function(_, data, _)
 				dump('TabNine: json decode error: ', jd)
 			elseif #items < Source.get_metadata().max_num_results then
 				local results = response.results
+				old_prefix = response.old_prefix
 				if results ~= nil then
 					-- dump(results)
 					for _, result in ipairs(results) do
 						if #items < Source.get_metadata().max_num_results then
 							-- table.insert(items, result.new_prefix)
 							local item = {
-								word = result.new_prefix,
-								user_data = result
+								word = result.new_prefix;
+								user_data = result;
 							}
 							table.insert(items, item)
 						end
@@ -194,10 +194,16 @@ Source._on_stdout = function(_, data, _)
 	--
 	-- now, if we have a callback, send results
 	if Source.callback then
+		if #items == 0 then
+			return
+		end
+		-- update keyword_pattern_offset according to the prefix tabnine reports
+		local pos = api.nvim_win_get_cursor(0)
 		Source.callback({
 			items = items;
 			-- we are always incomplete.
 			incomplete = true;
+			keyword_pattern_offset = pos[2] - #old_prefix + 1;
 		})
 	end
 	Source.callback = nil;
