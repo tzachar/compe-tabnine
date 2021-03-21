@@ -110,10 +110,6 @@ end
 function Source.complete(self, args)
 	Source.callback = args.callback
 	Source._do_complete()
-	args.callback({
-		items = {};
-		incomplete = true;
-	})
 end
 
 Source._on_err = function(_, data, _)
@@ -178,8 +174,7 @@ Source._on_stdout = function(_, data, _)
 	if Source.callback then
 		Source.callback({
 			items = items;
-			-- we are always incomplete.
-			incomplete = true;
+			incomplete = false;
 		})
 	end
 	Source.callback = nil;
