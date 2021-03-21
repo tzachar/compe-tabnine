@@ -202,9 +202,8 @@ Source._on_stdout = function(_, data, _)
 		local pos = api.nvim_win_get_cursor(0)
 		Source.callback({
 			items = items;
-			-- we are always incomplete.
-			incomplete = true;
 			keyword_pattern_offset = pos[2] - #old_prefix + 1;
+			incomplete = false;
 		})
 	end
 	Source.callback = nil;
