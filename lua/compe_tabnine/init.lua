@@ -70,6 +70,7 @@ function Source.get_metadata(_)
 		sort = false;
 		max_lines = has_conf('max_line', 1000);
 		max_num_results = has_conf('max_num_results', 20);
+		show_prediction_strength = has_conf('show_prediction_strength', true);
 	}
 end
 
@@ -185,21 +186,17 @@ Source._on_stdout = function(_, data, _)
 				-- the _on_exit callback should restart the server
 				-- fn.jobstop(Source.job)
 				dump('TabNine: json decode error: ', jd)
-			elseif #items < Source.get_metadata().max_num_results then
+			else
 				local results = response.results
 				old_prefix = response.old_prefix
 				if results ~= nil then
-					-- dump(results)
 					for _, result in ipairs(results) do
-						if #items < Source.get_metadata().max_num_results then
-							-- table.insert(items, result.new_prefix)
-							local item = {
-								word = result.new_prefix;
-								user_data = result;
-								filter_text = old_prefix;
-							}
-							table.insert(items, item)
-						end
+						local item = {
+							word = result.new_prefix;
+							user_data = result;
+							filter_text = old_prefix;
+						}
+						table.insert(items, item)
 					end
 				else
 					dump('no results:', jd)
@@ -207,6 +204,27 @@ Source._on_stdout = function(_, data, _)
 			end
 		end
 	end
+
+	-- sort by returned importance
+	table.sort(items, function(a, b)
+		local a_data = 0
+		local b_data = 0
+
+		if a.user_data.detail == nil then
+			a_data = 0
+		else
+			a_data = -tonumber(string.sub(a.user_data.detail, 0, -2))
+		end
+
+		if b.user_data.detail == nil then
+			b_data = 0
+		else
+			b_data = -tonumber(string.sub(b.user_data.detail, 0, -2))
+		end
+		return (a_data < b_data)
+	end)
+
+	items = {unpack(items, 1, Source.get_metadata().max_num_results)}
 	--
 	-- now, if we have a callback, send results
 	if Source.callback then
@@ -223,6 +241,24 @@ Source._on_stdout = function(_, data, _)
 	end
 	Source.callback = nil;
 end
+
+
+function Source.documentation(self, args)
+	if not Source.get_metadata().show_prediction_strength then
+		args.abort()
+		return
+	end
+	local completion_item = args['completed_item']
+	if completion_item then
+		local result = completion_item['user_data']
+		if result.detail then
+			args.callback('predicted relevance: **' .. result.detail .. '**')
+		else
+			args.abort()
+		end
+	end
+end
+
 
 if is_enabled() then
 	return Source.new()
