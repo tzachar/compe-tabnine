@@ -27,13 +27,28 @@ else
 	binary = fn.expand("<sfile>:p:h:h:h") .. "/binaries/TabNine_Windows"
 end
 
-
 local Source = {
 	callback = nil;
+	job = 0;
 }
+
+function Source.new(client, source)
+  local self = setmetatable({}, { __index = Source })
+  self._on_exit(0, 0)
+  return self
+end
+
 
 local function istable(t)
 	return type(t) == 'table'
+end
+
+local function is_enabled()
+	if vim.g.compe and vim.g.compe.source and vim.g.compe.source.tabnine then
+		return true
+	else
+		return false
+	end
 end
 
 local function has_conf(key, default)
@@ -209,6 +224,8 @@ Source._on_stdout = function(_, data, _)
 	Source.callback = nil;
 end
 
-Source._on_exit(0, 0)
-
-return Source
+if is_enabled() then
+	return Source.new()
+else
+	return {}
+end
