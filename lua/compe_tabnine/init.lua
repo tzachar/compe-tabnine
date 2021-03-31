@@ -1,6 +1,7 @@
 local compe = require'compe'
 local api = vim.api
 local fn = vim.fn
+local compe_config = require'compe.config'
 --
 
 local function dump(...)
@@ -27,38 +28,43 @@ else
 	binary = fn.expand("<sfile>:p:h:h:h") .. "/binaries/TabNine_Windows"
 end
 
+local function is_enabled()
+	local conf = compe_config.get()
+	return conf.source and conf.source.tabnine and not conf.source.tabnine.disabled
+end
+
+local conf_defaults = {
+	max_lines = 1000;
+	max_num_results = 20;
+	show_prediction_strength = true;
+	sort = true;
+}
+
+-- TODO: consider initializing config once.
+local function conf(key)
+	local c = compe_config.get()
+	if c.source and c.source.tabnine and c.source.tabnine[key] ~= nil then
+		return c.source.tabnine[key]
+	elseif conf_defaults[key] ~= nil then
+		return conf_defaults[key]
+	else
+		error()
+	end
+end
+
 local Source = {
 	callback = nil;
 	job = 0;
 }
 
 function Source.new(client, source)
-  local self = setmetatable({}, { __index = Source })
-  self._on_exit(0, 0)
-  return self
-end
-
-
-local function istable(t)
-	return type(t) == 'table'
-end
-
-local function is_enabled()
-	if vim.g.compe and vim.g.compe.source and vim.g.compe.source.tabnine then
-		return true
-	else
-		return false
+	local self = setmetatable({}, { __index = Source })
+	if is_enabled() then
+		self._on_exit(0, 0)
 	end
+	return self
 end
 
-local function has_conf(key, default)
-	if vim.g.compe and vim.g.compe.source and vim.g.compe.source.tabnine then
-		if istable(vim.g.compe.source.tabnine) then
-			return vim.g.compe.source.tabnine[key]
-		end
-	end
-	return default
-end
 
 --- get_metadata
 function Source.get_metadata(_)
@@ -66,11 +72,6 @@ function Source.get_metadata(_)
 		priority = 5000;
 		dup = 0;
 		menu = '[TN]';
-		-- by default, do not sort
-		sort = false;
-		max_lines = has_conf('max_line', 1000);
-		max_num_results = has_conf('max_num_results', 20);
-		show_prediction_strength = has_conf('show_prediction_strength', true);
 	}
 end
 
@@ -88,7 +89,7 @@ Source._do_complete = function()
 	if Source.job == 0 then
 		return
 	end
-	config = Source.get_metadata()
+	local max_lines = conf('max_lines')
 
 	local cursor=api.nvim_win_get_cursor(0)
 	local cur_line = api.nvim_get_current_line()
@@ -97,14 +98,14 @@ Source._do_complete = function()
 
 	local region_includes_beginning = false
 	local region_includes_end = false
-	if cursor[1] - config.max_lines <= 1 then region_includes_beginning = true end
-	if cursor[1] + config.max_lines >= fn['line']('$') then region_includes_end = true end
+	if cursor[1] - max_lines <= 1 then region_includes_beginning = true end
+	if cursor[1] + max_lines >= fn['line']('$') then region_includes_end = true end
 
-	local lines_before = api.nvim_buf_get_lines(0, cursor[1] - config.max_lines , cursor[1]-1, false)
+	local lines_before = api.nvim_buf_get_lines(0, cursor[1] - max_lines , cursor[1]-1, false)
 	table.insert(lines_before, cur_line_before)
 	local before = table.concat(lines_before, "\n")
 
-	local lines_after = api.nvim_buf_get_lines(0, cursor[1], cursor[1] + config.max_lines, false)
+	local lines_after = api.nvim_buf_get_lines(0, cursor[1], cursor[1] + max_lines, false)
 	table.insert(lines_after, 1, cur_line_after)
 	local after = table.concat(lines_after, "\n")
 
@@ -117,7 +118,7 @@ Source._do_complete = function()
 			region_includes_beginning = region_includes_beginning,
 			region_includes_end = region_includes_end,
 			filename = fn["expand"]("%:p"),
-			max_num_results = config.max_num_results
+			max_num_results = conf('max_num_results')
 		}
 	}
 
@@ -175,7 +176,6 @@ Source._on_stdout = function(_, data, _)
       --   "docs": []
       -- }
 	-- dump(data)
-	-- we the first max_num_results. TODO: add sorting and take best max_num_results
 	local items = {}
 	local old_prefix = ""
 	for _, jd in ipairs(data) do
@@ -206,25 +206,27 @@ Source._on_stdout = function(_, data, _)
 	end
 
 	-- sort by returned importance
-	table.sort(items, function(a, b)
-		local a_data = 0
-		local b_data = 0
+	if conf('sort') then
+		table.sort(items, function(a, b)
+			local a_data = 0
+			local b_data = 0
 
-		if a.user_data.detail == nil then
-			a_data = 0
-		else
-			a_data = -tonumber(string.sub(a.user_data.detail, 0, -2))
-		end
+			if a.user_data.detail == nil then
+				a_data = 0
+			else
+				a_data = -tonumber(string.sub(a.user_data.detail, 0, -2))
+			end
 
-		if b.user_data.detail == nil then
-			b_data = 0
-		else
-			b_data = -tonumber(string.sub(b.user_data.detail, 0, -2))
-		end
-		return (a_data < b_data)
-	end)
+			if b.user_data.detail == nil then
+				b_data = 0
+			else
+				b_data = -tonumber(string.sub(b.user_data.detail, 0, -2))
+			end
+			return (a_data < b_data)
+		end)
+	end
 
-	items = {unpack(items, 1, Source.get_metadata().max_num_results)}
+	items = {unpack(items, 1, conf('max_num_results'))}
 	--
 	-- now, if we have a callback, send results
 	if Source.callback then
@@ -244,7 +246,7 @@ end
 
 
 function Source.documentation(self, args)
-	if not Source.get_metadata().show_prediction_strength then
+	if not conf('show_prediction_strength') then
 		args.abort()
 		return
 	end
@@ -259,9 +261,4 @@ function Source.documentation(self, args)
 	end
 end
 
-
-if is_enabled() then
-	return Source.new()
-else
-	return {}
-end
+return Source.new()
