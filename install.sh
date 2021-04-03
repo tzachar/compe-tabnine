@@ -6,29 +6,27 @@ set -o errexit
 set -o pipefail
 set -x
 
-version=${version:-$(curl -sS https://update.tabnine.com/version)}
+version=${version:-$(curl -sS https://update.tabnine.com/bundles/version)}
 
 case $(uname -s) in
 "Darwin")
     platform="apple-darwin"
     ;;
 "Linux")
-    platform="unknown-linux-gnu"
+    platform="unknown-linux-musl"
     ;;
 esac
-# platform="unknown-linux-gnu"
 triple="$(uname -m)-$platform"
 
+# we want the binary to reside inside our plugin's dir
 cd $(dirname $0)
-path=$version/$triple/TabNine
-if [[ -f "binaries/$path" ]] && [[ -e "binaries/TabNine_$(uname -s)" ]]; then
-    ln -sf $path "binaries/TabNine_$(uname -s)"
-    exit
-fi
-echo Downloading version $version
-curl https://update.tabnine.com/$path --create-dirs -o binaries/$path
-chmod +x binaries/$path
+path=$version/$triple
+
+curl https://update.tabnine.com/bundles/${path}/TabNine.zip --create-dirs -o binaries/${path}/TabNine.zip
+unzip -o binaries/${path}/TabNine.zip -d binaries/${path}
+rm -rf binaries/${path}/TabNine.zip
+chmod +x binaries/$path/TabNine
 
 target="binaries/TabNine_$(uname -s)"
 rm $target || true # remove old link
-ln -sf $path $target
+ln -sf $path/TabNine $target
