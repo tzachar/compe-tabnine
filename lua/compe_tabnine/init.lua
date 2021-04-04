@@ -36,8 +36,9 @@ end
 local conf_defaults = {
 	max_lines = 1000;
 	max_num_results = 20;
-	show_prediction_strength = true;
 	sort = true;
+	priority = 5000;
+	show_prediction_strength = true;
 }
 
 -- TODO: consider initializing config once.
@@ -110,7 +111,7 @@ Source._do_complete = function()
 	local after = table.concat(lines_after, "\n")
 
 	local req = {}
-	req.version = "2.0.0"
+	req.version = "3.3.0"
 	req.request = {
 		Autocomplete = {
 			before = before,
@@ -140,7 +141,6 @@ function Source.confirm(self, option)
   local col = pos[2]
   local len = string.len(item.user_data.old_suffix)
   api.nvim_buf_set_text(0, row, col, row, col+len, {item.user_data.new_suffix})
-  -- api.nvim_put({item.user_data.new_suffix}, "c", true, false)
 end
 
 
@@ -178,6 +178,9 @@ Source._on_stdout = function(_, data, _)
 	-- dump(data)
 	local items = {}
 	local old_prefix = ""
+	local show_strength = conf('show_prediction_strength')
+	local base_priority = conf('priority')
+
 	for _, jd in ipairs(data) do
 		if jd ~= nil and jd ~= '' then
 			local response = json_decode(jd)
@@ -196,6 +199,15 @@ Source._on_stdout = function(_, data, _)
 							user_data = result;
 							filter_text = old_prefix;
 						}
+						if result.detail ~= nil then
+							local percent = tonumber(string.sub(result.detail, 0, -2))
+							item['priority'] = base_priority + percent * 0.001
+							if show_strength then
+								-- abuse kind to show strength
+								item['kind'] = result.detail
+							end
+						end
+
 						table.insert(items, item)
 					end
 				else
@@ -205,26 +217,16 @@ Source._on_stdout = function(_, data, _)
 		end
 	end
 
-	-- sort by returned importance
-	if conf('sort') then
-		table.sort(items, function(a, b)
-			local a_data = 0
-			local b_data = 0
-
-			if a.user_data.detail == nil then
-				a_data = 0
-			else
-				a_data = -tonumber(string.sub(a.user_data.detail, 0, -2))
-			end
-
-			if b.user_data.detail == nil then
-				b_data = 0
-			else
-				b_data = -tonumber(string.sub(b.user_data.detail, 0, -2))
-			end
-			return (a_data < b_data)
-		end)
-	end
+	-- sort by returned importance b4 limiting number of results
+	table.sort(items, function(a, b)
+		if not a.priority then
+			return false
+		elseif not b.priority then
+			return true
+		else
+			return (a.priority > b.priority)
+		end
+	end)
 
 	items = {unpack(items, 1, conf('max_num_results'))}
 	--
@@ -245,20 +247,5 @@ Source._on_stdout = function(_, data, _)
 end
 
 
-function Source.documentation(self, args)
-	if not conf('show_prediction_strength') then
-		args.abort()
-		return
-	end
-	local completion_item = args['completed_item']
-	if completion_item then
-		local result = completion_item['user_data']
-		if result.detail then
-			args.callback('predicted relevance: **' .. result.detail .. '**')
-		else
-			args.abort()
-		end
-	end
-end
 
 return Source.new()
