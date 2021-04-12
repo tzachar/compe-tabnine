@@ -36,7 +36,7 @@ end
 local conf_defaults = {
 	max_lines = 1000;
 	max_num_results = 20;
-	sort = true;
+	sort = false;
 	priority = 5000;
 	show_prediction_strength = true;
 }
@@ -71,8 +71,8 @@ end
 function Source.get_metadata(_)
 	return {
 		priority = 5000;
-		dup = 0;
 		menu = '[TN]';
+		sort = conf('sort');
 	}
 end
 
