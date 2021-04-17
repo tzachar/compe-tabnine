@@ -18,6 +18,20 @@ local function json_decode(data)
 	end
 end
 
+
+--- _get_paths
+local function get_paths(root, paths)
+	local c = root
+	for _, path in ipairs(paths) do
+		c = c[path]
+		if not c then
+			return nil
+		end
+	end
+	return c
+end
+
+
 -- locate the binary here, as expand is relative to the calling script name
 local binary = nil
 if fn.has("mac") == 1 then
@@ -30,7 +44,8 @@ end
 
 local function is_enabled()
 	local conf = compe_config.get()
-	return conf.source and conf.source.tabnine and not conf.source.tabnine.disabled
+	local diabled = get_paths(conf, {'source', 'tabnine', 'disabled'})
+	return not disabled
 end
 
 local conf_defaults = {
@@ -44,8 +59,9 @@ local conf_defaults = {
 -- TODO: consider initializing config once.
 local function conf(key)
 	local c = compe_config.get()
-	if c.source and c.source.tabnine and c.source.tabnine[key] ~= nil then
-		return c.source.tabnine[key]
+	local value = get_paths(c, {'source', 'tabnine', key})
+	if value ~= nil then
+		return value
 	elseif conf_defaults[key] ~= nil then
 		return conf_defaults[key]
 	else
@@ -201,13 +217,16 @@ Source._on_stdout = function(_, data, _)
 						}
 						if result.detail ~= nil then
 							local percent = tonumber(string.sub(result.detail, 0, -2))
-							item['priority'] = base_priority + percent * 0.001
-							if show_strength then
-								-- abuse kind to show strength
-								item['kind'] = result.detail
+							if percent ~= nil then
+								item['priority'] = base_priority + percent * 0.001
+								if show_strength then
+									-- abuse kind to show strength
+									item['kind'] = result.detail
+								end
+							else
+								item['kind'] = vim.lsp.protocol.CompletionItemKind[result.kind] or nil;
 							end
 						end
-
 						table.insert(items, item)
 					end
 				else
@@ -246,6 +265,32 @@ Source._on_stdout = function(_, data, _)
 	Source.callback = nil;
 end
 
+local util = require'vim.lsp.util'
+function Source.documentation(self, args)
+	local completion_item = get_paths(args, { 'completed_item', 'user_data' })
+	dump(completion_item)
+	local document = {}
+	local show = false
+	table.insert(document, '```' .. args.context.filetype)
+	-- only add the detail when its not a % value
+	if completion_item and completion_item.detail and #completion_item.detail > 3 then
+		table.insert(document, completion_item.detail)
+		table.insert(document, ' ')
+		show = true
+	end
+
+	if completion_item.documentation then
+		table.insert(document, completion_item.documentation)
+		show = true
+	end
+	table.insert(document, '```')
+
+	if show then
+		args.callback(document)
+	else
+		args.abort()
+	end
+end
 
 
 return Source.new()
