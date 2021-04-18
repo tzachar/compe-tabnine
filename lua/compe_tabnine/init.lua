@@ -54,6 +54,7 @@ local conf_defaults = {
 	sort = false;
 	priority = 5000;
 	show_prediction_strength = true;
+	ignore_pattern = '';
 }
 
 -- TODO: consider initializing config once.
@@ -94,9 +95,14 @@ end
 
 --- determine
 function Source.determine(_, context)
-	-- dump(context)
+	local pattern = conf('ignore_pattern')
+	if pattern and #pattern > 0 and not context.manual then
+		if string.match(context.before_char, pattern) ~= nil then
+			return nil
+		end
+	end
 	return {
-		keyword_pattern_offset = 1;
+		keyword_pattern_offset = 0;
 		trigger_character_offset = context.col;
 	}
 end
