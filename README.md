@@ -36,7 +36,7 @@ let g:compe.source.tabnine.show_prediction_strength = v:true
 let g:compe.source.tabnine.ignore_pattern = ''
    ```
 
-## Completion Behavior
+# Completion Behavior
 
 In general, as TabNine is a predictive completion engine, you would normally
 want TabNine to suggest completions after every keypress. In some instances this

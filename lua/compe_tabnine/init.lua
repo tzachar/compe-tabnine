@@ -44,8 +44,12 @@ end
 
 local function is_enabled()
 	local conf = compe_config.get()
-	local diabled = get_paths(conf, {'source', 'tabnine', 'disabled'})
-	return not disabled
+	local disabled = get_paths(conf, {'source', 'tabnine', 'disabled'})
+	if disabled ~= nil and disabled == true then
+		return false
+	else
+		return true
+	end
 end
 
 local conf_defaults = {
