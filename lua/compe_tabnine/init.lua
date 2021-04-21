@@ -97,7 +97,7 @@ end
 function Source.determine(_, context)
 	local pattern = conf('ignore_pattern')
 	if pattern and #pattern > 0 and not context.manual then
-		if string.match(context.before_char, pattern) ~= nil then
+		if #context.before_char == 0 or string.match(context.before_char, pattern) ~= nil then
 			return nil
 		end
 	end
