@@ -278,7 +278,6 @@ end
 local util = require'vim.lsp.util'
 function Source.documentation(self, args)
 	local completion_item = get_paths(args, { 'completed_item', 'user_data' })
-	dump(completion_item)
 	local document = {}
 	local show = false
 	table.insert(document, '```' .. args.context.filetype)
