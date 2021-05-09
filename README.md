@@ -40,7 +40,7 @@ let g:compe.source.tabnine.ignore_pattern = ''
 
 In general, as TabNine is a predictive completion engine, you would normally
 want TabNine to suggest completions after every keypress. In some instances this
-may be either prohibitive or annoying. To wor around it, you can use the
+may be either prohibitive or annoying. To work around it, you can use the
 `ignore_pattern` config option. 
 `ignore_pattern` is an RE specifying when not to suggest completions based on the character
 before the cursor. For example, to not fire completions after an opening
