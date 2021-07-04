@@ -160,13 +160,18 @@ end
 
 --- confirm replace suffix
 function Source.confirm(self, option)
-  local item = option.completed_item
+	local item = option.completed_item
 
-  local pos = api.nvim_win_get_cursor(0)
-  local row = pos[1] - 1
-  local col = pos[2]
-  local len = string.len(item.user_data.old_suffix)
-  api.nvim_buf_set_text(0, row, col, row, col+len, {item.user_data.new_suffix})
+	local pos = api.nvim_win_get_cursor(0)
+	local row = pos[1] - 1
+	local col = pos[2]
+	if string.find(item.user_data.old_suffix, '\n') then
+		-- we have a multiline replacement. Dont be smart, just insert text
+		api.nvim_buf_set_text(0, row, col, row, col, {item.user_data.new_suffix})
+	else
+		local len = string.len(item.user_data.old_suffix)
+		api.nvim_buf_set_text(0, row, col, row, col+len, {item.user_data.new_suffix})
+	end
 end
 
 
