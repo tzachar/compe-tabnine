@@ -33,13 +33,34 @@ end
 
 
 -- locate the binary here, as expand is relative to the calling script name
-local binary = nil
-if fn.has("mac") == 1 then
-	binary = fn.expand("<sfile>:p:h:h:h") .. "/binaries/TabNine_Darwin"
-elseif fn.has('unix') == 1 then
-	binary = fn.expand("<sfile>:p:h:h:h") .. "/binaries/TabNine_Linux"
-else
-	binary = fn.expand("<sfile>:p:h:h:h") .. "/binaries/TabNine_Windows"
+local function binary()
+	local binaries_folder = fn.expand("%:p:h:h:h") .. "/binaries"
+	local versions_folders = fn.globpath(binaries_folder, '*', false, true)
+	local versions = {}
+	for _, path in ipairs(versions_folders) do
+		for i in string.gmatch(path, '/[^/]*$') do
+			local version, _ = string.gsub(i, '/', '')
+			table.insert(versions, {path=path, version=version})
+		end
+	end
+	table.sort(versions, function (a, b) return a.version < b.version end)
+	local latest = versions[#versions]
+
+	local platform = nil
+	if fn.has('win32') == 1 then
+		platform = 'i686-pc-windows-gnu'
+	elseif fn.has('win64') == 1 then
+		platform = 'x86_64-pc-windows-gnu'
+	elseif fn.has("mac") == 1 then
+		if fn.system('arch') == 'arm64' then
+			platform = 'aarch64-apple-darwin'
+		else
+			platform = 'x86_64-apple-darwin'
+		end
+	elseif fn.has('unix') == 1 then
+		platform = 'x86_64-unknown-linux-musl'
+	end
+	return latest.path .. '/' .. platform .. '/' .. 'TabNine'
 end
 
 local function is_enabled()
@@ -185,7 +206,7 @@ Source._on_exit = function(_, code)
 		return
 	end
 
-	Source.job = fn.jobstart({binary}, {
+	Source.job = fn.jobstart({binary()}, {
 		on_stderr = Source._on_stderr;
 		on_exit = Source._on_exit;
 		on_stdout = Source._on_stdout;
