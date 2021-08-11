@@ -29,7 +29,3 @@ curl https://update.tabnine.com/bundles/${path}/TabNine.zip --create-dirs -o bin
 unzip -o binaries/${path}/TabNine.zip -d binaries/${path}
 rm -rf binaries/${path}/TabNine.zip
 chmod +x binaries/$path/*
-
-target="binaries/TabNine_$(uname -s)"
-rm $target || true # remove old link
-ln -sf $path/TabNine $target
