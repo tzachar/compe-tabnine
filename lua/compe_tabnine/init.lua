@@ -32,9 +32,11 @@ local function get_paths(root, paths)
 end
 
 
+-- do this once on init, otherwise on restart this dows not work
+local binaries_folder = fn.expand("<sfile>:p:h:h:h") .. "/binaries"
+
 -- locate the binary here, as expand is relative to the calling script name
 local function binary()
-	local binaries_folder = fn.expand("%:p:h:h:h") .. "/binaries"
 	local versions_folders = fn.globpath(binaries_folder, '*', false, true)
 	local versions = {}
 	for _, path in ipairs(versions_folders) do
