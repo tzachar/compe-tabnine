@@ -40,9 +40,10 @@ local function binary()
 	local versions_folders = fn.globpath(binaries_folder, '*', false, true)
 	local versions = {}
 	for _, path in ipairs(versions_folders) do
-		for i in string.gmatch(path, '/[^/]*$') do
-			local version, _ = string.gsub(i, '/', '')
-			table.insert(versions, {path=path, version=version})
+		for version in string.gmatch(path, '/([0-9.]+)$') do
+			if version then
+				table.insert(versions, {path=path, version=version})
+			end
 		end
 	end
 	table.sort(versions, function (a, b) return a.version < b.version end)
