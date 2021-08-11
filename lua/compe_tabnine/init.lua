@@ -33,7 +33,7 @@ end
 
 
 -- do this once on init, otherwise on restart this dows not work
-local binaries_folder = fn.expand("<sfile>:p:h:h:h") .. "/binaries"
+local binaries_folder = fn.expand('<sfile>:p:h:h:h') .. '/binaries'
 
 -- locate the binary here, as expand is relative to the calling script name
 local function binary()
@@ -50,12 +50,12 @@ local function binary()
 	local latest = versions[#versions]
 
 	local platform = nil
-  local arch, _ = string.gsub(fn.system('uname -m'), "\n$", "")
+  local arch, _ = string.gsub(fn.system('uname -m'), '\n$', '')
 	if fn.has('win32') == 1 then
 		platform = 'i686-pc-windows-gnu'
 	elseif fn.has('win64') == 1 then
 		platform = 'x86_64-pc-windows-gnu'
-	elseif fn.has("mac") == 1 then
+	elseif fn.has('mac') == 1 then
 		if arch == 'arm64' then
 			platform = 'aarch64-apple-darwin'
 		else
