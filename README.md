@@ -1,3 +1,9 @@
+# Warning
+
+compe-tabnine is deprecated, as nvim-compe has been deprecated.
+Please consider using [hrsh7th/nvim-cmp](https://github.com/hrsh7th/nvim-cmp)
+and [tzachar/cmp-tabnine](https://github.com/tzachar/cmp-tabnine).
+
 # compe-tabnine
 TabNine source for [hrsh7th/nvim-compe](https://github.com/hrsh7th/nvim-compe)
 
