@@ -210,7 +210,7 @@ Source._on_exit = function(_, code)
 		return
 	end
 
-	Source.job = fn.jobstart({binary()}, {
+	Source.job = fn.jobstart({binary(), '--client=compe.vim'}, {
 		on_stderr = Source._on_stderr;
 		on_exit = Source._on_exit;
 		on_stdout = Source._on_stdout;
